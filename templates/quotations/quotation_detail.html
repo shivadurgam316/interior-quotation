@@ -1,0 +1,76 @@
+{% extends "quotations/base.html" %}
+{% block title %}{{ quotation.quotation_number }}{% endblock %}
+{% block content %}
+<div class="page-title no-print">
+    <div><h1>{{ quotation.quotation_number }}</h1><div class="muted">Quotation preview</div></div>
+    <div class="actions">
+        <a class="btn secondary" href="{% url 'quotation_pdf' quotation.id %}">Download PDF</a>
+        <a class="btn success" href="{% url 'quotation_whatsapp' quotation.id %}">Send via WhatsApp</a>
+        <button class="btn primary" onclick="window.print()">Print</button>
+    </div>
+</div>
+
+<div class="card">
+    <div style="display:flex;justify-content:space-between;gap:20px;border-bottom:2px solid #ccc;padding-bottom:18px;">
+        <div>
+            <h1 style="color:#7a1717;margin-bottom:4px;">{{ quotation.company.company_name }}</h1>
+            <div>{{ quotation.company.address|default:"" }}</div>
+            {% if quotation.company.phone %}<div>{{ quotation.company.phone }}</div>{% endif %}
+        </div>
+        <div class="right">
+            <h2>QUOTATION</h2>
+            <div>Date: {{ quotation.quotation_date }}</div>
+            <div>Quote No: {{ quotation.quotation_number }}</div>
+        </div>
+    </div>
+
+    <div style="background:#f1f2f2;padding:16px;margin-top:24px;">
+        <strong>To,</strong><br>
+        {{ quotation.customer_name }}<br>
+        {{ quotation.customer_address|linebreaksbr }}<br>
+        Ph No: {{ quotation.whatsapp_number }}
+    </div>
+
+    <p style="margin-top:24px;">
+        Dear Sir/Mam,<br><br>
+        Thank you for your valuable inquiry. We are pleased to quote as below!
+    </p>
+
+    <div class="table-wrap">
+    <table>
+        <thead><tr><th>#</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
+        <tbody>
+        {% for item in quotation.items %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ item.description }}</td>
+            <td>{{ item.quantity }} {{ item.unit }}</td>
+            <td>₹{{ item.price|floatformat:2 }}</td>
+            <td>₹{{ item.total|floatformat:2 }}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+
+    <div class="total-box">
+        <div class="total-row"><strong>SUB TOTAL:</strong><strong>₹{{ quotation.subtotal|floatformat:2 }}</strong></div>
+        <div class="total-row"><strong>SGST:</strong><strong>₹{{ quotation.sgst|floatformat:2 }}</strong></div>
+        <div class="total-row"><strong>CGST:</strong><strong>₹{{ quotation.cgst|floatformat:2 }}</strong></div>
+        <div class="total-row grand"><strong>GRAND TOTAL:</strong><strong>₹{{ quotation.grand_total|floatformat:2 }}</strong></div>
+    </div>
+
+    <p style="margin-top:45px;">We hope you find our offer to be in line with your requirement.</p>
+
+    <div class="right" style="margin-top:45px;">
+        <strong>For, {{ quotation.company.company_name }}</strong>
+        <br><br><br>
+        <strong>Authorized Signatory</strong>
+    </div>
+
+    <div style="margin-top:55px;">
+        <h3>TERMS AND CONDITIONS:</h3>
+        <div style="white-space:pre-line;">{{ quotation.terms_conditions }}</div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "quotations/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-title">
+    <div>
+        <h1>Quotation Dashboard</h1>
+        <div class="muted">Interior quotation management</div>
+    </div>
+    <a class="btn primary" href="{% url 'quotation_create' %}">+ New Quotation</a>
+</div>
+
+<div class="grid-3">
+    <div class="stat"><small>Customers</small><strong>{{ stats.customer_count }}</strong></div>
+    <div class="stat"><small>Quotations</small><strong>{{ stats.quotation_count }}</strong></div>
+    <div class="stat"><small>Total Quotation Value</small><strong>₹{{ stats.quotation_value|floatformat:2 }}</strong></div>
+</div>
+
+<div class="card" style="margin-top:22px;">
+    <div class="page-title">
+        <h2>Recent Quotations</h2>
+        <a class="btn success" href="{% url 'quotation_create' %}">Create Quotation</a>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>Quote No</th>
+                    <th>Customer</th>
+                    <th>Date</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for q in quotations %}
+                <tr>
+                    <td><strong>{{ q.quotation_number }}</strong></td>
+                    <td>{{ q.customer_name }}</td>
+                    <td>{{ q.quotation_date }}</td>
+                    <td>₹{{ q.grand_total|floatformat:2 }}</td>
+                    <td>{{ q.status }}</td>
+                    <td><a class="btn secondary" href="{% url 'quotation_detail' q.id %}">View</a></td>
+                </tr>
+            {% empty %}
+                <tr><td colspan="6" class="right">No quotations yet.</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

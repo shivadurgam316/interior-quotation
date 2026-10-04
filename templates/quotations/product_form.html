@@ -1,0 +1,28 @@
+{% extends "quotations/base.html" %}
+{% block title %}{% if product %}Edit{% else %}Add{% endif %} Product{% endblock %}
+{% block content %}
+<div class="page-title"><div><h1>{% if product %}Edit{% else %}Add{% endif %} Product</h1></div></div>
+<div class="card">
+<form method="post">
+{% csrf_token %}
+<div class="grid-2">
+<div class="field"><label>Name *</label><input name="name" required value="{{ product.name|default:'' }}"></div>
+<div class="field"><label>Category</label><input name="category" value="{{ product.category|default:'' }}"></div>
+<div class="field">
+<label>Unit</label>
+<select name="unit">
+{% for unit in "SFT,SQFT,NOS,RFT,KG,SET,LUMP".split %}
+<option value="{{ unit }}" {% if product and product.unit == unit %}selected{% endif %}>{{ unit }}</option>
+{% endfor %}
+</select>
+</div>
+<div class="field"><label>Default Price</label><input type="number" step="0.01" min="0" name="default_price" value="{{ product.default_price|default:'0' }}"></div>
+<div class="field"><label>Tax %</label><input type="number" step="0.01" min="0" name="tax_percentage" value="{{ product.tax_percentage|default:'0' }}"></div>
+</div>
+<div class="actions">
+<button class="btn success">Save Product</button>
+<a class="btn secondary" href="{% url 'product_list' %}">Cancel</a>
+</div>
+</form>
+</div>
+{% endblock %}

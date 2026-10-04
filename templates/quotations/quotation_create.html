@@ -1,0 +1,183 @@
+{% extends "quotations/base.html" %}
+{% block title %}Create Quotation{% endblock %}
+{% block content %}
+<div class="page-title">
+    <div><h1>Create Quotation</h1><div class="muted">Create and save an interior project quotation</div></div>
+</div>
+
+<form method="post" id="quotationForm">
+{% csrf_token %}
+
+<div class="card">
+<h2>Customer</h2>
+<div class="grid-2">
+<div class="field">
+<label>Customer *</label>
+<select id="customer_id" name="customer_id" required>
+<option value="">Select customer</option>
+{% for c in customers %}
+<option value="{{ c.id }}" data-phone="{{ c.whatsapp_number }}" data-email="{{ c.email|default:'' }}" data-address="{{ c.address|default:'' }}">{{ c.name }}</option>
+{% endfor %}
+</select>
+</div>
+<div class="field"><label>WhatsApp</label><input id="customer_phone" readonly></div>
+<div class="field"><label>Email (not used in V1)</label><input id="customer_email" readonly></div>
+<div class="field"><label>Address</label><textarea id="customer_address" readonly></textarea></div>
+</div>
+</div>
+
+<div class="card">
+<div class="page-title">
+<h2>Quotation Items</h2>
+<button type="button" class="btn primary" onclick="addRow()">+ Add Item</button>
+</div>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th>#</th><th>Description</th><th>Qty</th><th>Unit</th><th>Price</th><th>Tax %</th><th>Total</th><th></th></tr>
+</thead>
+<tbody id="itemsBody"></tbody>
+</table>
+</div>
+
+<div class="total-box">
+<div class="total-row"><span>Subtotal</span><strong>₹<span id="subtotal">0.00</span></strong></div>
+<div class="total-row"><span>SGST</span><strong>₹<span id="sgst">0.00</span></strong></div>
+<div class="total-row"><span>CGST</span><strong>₹<span id="cgst">0.00</span></strong></div>
+<div class="total-row grand"><span>Grand Total</span><strong>₹<span id="grandTotal">0.00</span></strong></div>
+</div>
+</div>
+
+<div class="card">
+<h2>Terms & Conditions</h2>
+<textarea name="terms_conditions">1. Goods once sold will not be taken back or exchanged.
+2. Advance payment of 50% before work starts.
+3. 30% payment amount on completion of 35% work.
+4. 20% payment amount on completion of 100% work.
+5. Additional charges will apply for any structural changes or modifications.
+6. This is an estimated quote (approximate value).</textarea>
+</div>
+
+<div class="actions" style="justify-content:flex-end;">
+<a class="btn secondary" href="{% url 'dashboard' %}">Cancel</a>
+<button class="btn success" type="submit">Generate Quotation</button>
+</div>
+</form>
+
+<script>
+const products = [
+{% for p in products %}
+{
+    name: "{{ p.name|escapejs }}",
+    unit: "{{ p.unit|escapejs }}",
+    price: "{{ p.default_price }}",
+    tax: "{{ p.tax_percentage }}"
+},
+{% endfor %}
+];
+
+function productOptions(selected = "") {
+    let html = '<option value="">Custom item</option>';
+    products.forEach((p, i) => {
+        html += `<option value="${i}" ${String(selected) === String(i) ? "selected" : ""}>${p.name}</option>`;
+    });
+    return html;
+}
+
+function addRow(productIndex = "") {
+    const tbody = document.getElementById("itemsBody");
+    const row = document.createElement("tr");
+    row.innerHTML = `
+        <td class="row-no"></td>
+        <td>
+            <select class="product-select" onchange="selectProduct(this)">
+                ${productOptions(productIndex)}
+            </select>
+            <input name="description[]" class="description" placeholder="Description" required style="margin-top:6px;">
+        </td>
+        <td><input name="quantity[]" class="qty" type="number" min="0" step="0.01" value="1" required></td>
+        <td>
+            <select name="unit[]" class="unit">
+                <option>SFT</option><option>SQFT</option><option>NOS</option>
+                <option>RFT</option><option>KG</option><option>SET</option><option>LUMP</option>
+            </select>
+        </td>
+        <td><input name="price[]" class="price" type="number" min="0" step="0.01" value="0" required></td>
+        <td><input name="tax[]" class="tax" type="number" min="0" step="0.01" value="0" required></td>
+        <td>₹<span class="line-total">0.00</span></td>
+        <td><button type="button" class="btn danger" onclick="removeRow(this)">Remove</button></td>
+    `;
+    tbody.appendChild(row);
+
+    row.querySelector(".qty").addEventListener("input", calculate);
+    row.querySelector(".price").addEventListener("input", calculate);
+    row.querySelector(".tax").addEventListener("input", calculate);
+
+    if (productIndex !== "") {
+        selectProduct(row.querySelector(".product-select"));
+    }
+    renumber();
+    calculate();
+}
+
+function selectProduct(select) {
+    const row = select.closest("tr");
+    const index = select.value;
+    if (index === "") return;
+    const p = products[Number(index)];
+    row.querySelector(".description").value = p.name;
+    row.querySelector(".unit").value = p.unit;
+    row.querySelector(".price").value = p.price;
+    row.querySelector(".tax").value = p.tax;
+    calculate();
+}
+
+function removeRow(button) {
+    button.closest("tr").remove();
+    renumber();
+    calculate();
+}
+
+function renumber() {
+    document.querySelectorAll("#itemsBody tr").forEach((row, i) => {
+        row.querySelector(".row-no").textContent = i + 1;
+    });
+}
+
+function calculate() {
+    let subtotal = 0;
+    let taxTotal = 0;
+
+    document.querySelectorAll("#itemsBody tr").forEach(row => {
+        const qty = Number(row.querySelector(".qty").value || 0);
+        const price = Number(row.querySelector(".price").value || 0);
+        const tax = Number(row.querySelector(".tax").value || 0);
+        const total = qty * price;
+        const taxAmount = total * tax / 100;
+
+        row.querySelector(".line-total").textContent = total.toFixed(2);
+        subtotal += total;
+        taxTotal += taxAmount;
+    });
+
+    const sgst = taxTotal / 2;
+    const cgst = taxTotal / 2;
+    const grand = subtotal + taxTotal;
+
+    document.getElementById("subtotal").textContent = subtotal.toFixed(2);
+    document.getElementById("sgst").textContent = sgst.toFixed(2);
+    document.getElementById("cgst").textContent = cgst.toFixed(2);
+    document.getElementById("grandTotal").textContent = grand.toFixed(2);
+}
+
+document.getElementById("customer_id").addEventListener("change", function() {
+    const option = this.options[this.selectedIndex];
+    document.getElementById("customer_phone").value = option.dataset.phone || "";
+    document.getElementById("customer_email").value = option.dataset.email || "";
+    document.getElementById("customer_address").value = option.dataset.address || "";
+});
+
+addRow();
+</script>
+{% endblock %}
